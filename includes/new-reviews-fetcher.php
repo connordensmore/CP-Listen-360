@@ -24,7 +24,7 @@ function fetch_api_data($api_url, $headers)
 
 function fetch_process_store_reviews()
 {
-  // $api_url = 'https://app.listen360.com/organizations/2835632886631181125/reviews.csv?per_page=1000';
+  $organization_reference_id = 124;
   $api_url_base = 'https://app.listen360.com/organizations/2835632886631181125/reviews.csv';
   $api_key = 'cbbef8d18aca2221e423d81752a420a3197bf411';
   $authorization_header = 'Authorization: Basic ' . base64_encode($api_key . ':X');
@@ -60,7 +60,7 @@ function fetch_process_store_reviews()
         $publicDisplayComments = $data[19];
 
         // Check if the cells are not empty before creating or updating the post
-        if ($organizationReference == "298" && !empty($customerFullName)) {
+        if ($organizationReference == "$organization_reference_id" && !empty($customerFullName)) {
           $existing_post = get_page_by_title($customerFullName, OBJECT, 'listen360_review');
 
           // Prepare the meta data for the post
