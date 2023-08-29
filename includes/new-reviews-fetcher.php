@@ -24,7 +24,7 @@ function fetch_api_data($api_url, $headers)
 
 function fetch_process_store_reviews()
 {
-  $api_url = 'https://app.listen360.com/organizations/2835632886631181125/reviews.csv?per_page=100';
+  $api_url = 'https://app.listen360.com/organizations/2835632886631181125/reviews.csv?per_page=1000';
   $api_key = 'cbbef8d18aca2221e423d81752a420a3197bf411';
   $authorization_header = 'Authorization: Basic ' . base64_encode($api_key . ':X');
   $cookie_header = 'Cookie: _listen360_production_session=BAh7CUkiD3Nlc3Npb25faWQGOgZFVEkiJTQ0MTA2YmMxNjUzMWYzOGRjNDY1NTdmODE4N2M0MWU2BjsAVEkiDnJldHVybl90bwY7AEZJIh9odHRwczovL2FwcC5saXN0ZW4zNjAuY29tLwY7AFRJIhBfY3NyZl90b2tlbgY7AEZJIjFxQVNLd0F4ZWZQd0JQcDYxcWNvazVLc0xyL2lGNlM4eC9WckFkcUJOT3EwPQY7AEZJIgxyb290X2lkBjsARmwrCUUrESkWMVon--a9488c80e4d5662c554e4a898d374aaf9277ecbd';
@@ -43,11 +43,12 @@ function fetch_process_store_reviews()
 
     // Make sure the array has at least 17 elements before accessing them
     if (count($data) >= 17) {
+      $organizationReference = $data[0];
       $customerFullName = $data[3];
       $publicDisplayComments = $data[19];
 
       // Check if the cells are not empty before creating or updating the post
-      if (!empty($customerFullName) && !empty($publicDisplayComments)) {
+      if ($organizationReference == "298" && !empty($customerFullName)) {
         $existing_post = get_page_by_title($customerFullName, OBJECT, 'listen360_review');
 
         // Prepare the meta data for the post
@@ -73,7 +74,6 @@ function fetch_process_store_reviews()
           // Update the existing post
           wp_update_post(
             array(
-              'ID' => $post_id,
               'post_title' => $customerFullName,
               'post_content' => $publicDisplayComments,
             )
