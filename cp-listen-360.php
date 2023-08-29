@@ -30,40 +30,45 @@ add_action('admin_menu', 'listen360_api_plugin_settings_page');
 function listen360_api_plugin_render_settings_page()
 {
   ?>
-  <div class="wrap">
-    <h2>Listen360 API Plugin Settings</h2>
-    <div>
-      <form method="post" action="options.php">
-        <?php settings_fields('listen360_api_plugin_settings'); ?>
-        <?php do_settings_sections('listen360_api_plugin_settings'); ?>
-        <table class="form-table">
-          <tr valign="top">
-            <th scope="row">Organization Reference ID</th>
-            <td><input type="number" name="organization_reference_id"
-                value="<?php echo esc_attr(get_option('organization_reference_id')); ?>" /></td>
-          </tr>
-        </table>
-        <table class="form-table">
-          <tr valign="top">
-            <th scope="row">API Key</th>
-            <td><input type="password" name="listen360_api_key"
-                value="<?php echo esc_attr(get_option('listen360_api_key')); ?>" /></td>
-          </tr>
-        </table>
-        <?php submit_button(); ?>
-      </form>
-    </div>
-    <div>
-      <p>Manually Pull and Update Reviews</p>
-      <button type="button" id="manual-update-button" class="button">Manual Update</button>
-    </div>
+<style>
+.api-settings input {
+  width: 50%;
+}
+</style>
+<div class="wrap api-settings">
+  <h2>Listen360 API Plugin Settings</h2>
+  <div>
+    <form method="post" action="options.php">
+      <?php settings_fields('listen360_api_plugin_settings'); ?>
+      <?php do_settings_sections('listen360_api_plugin_settings'); ?>
+      <table class="form-table">
+        <tr valign="top">
+          <th scope="row">Organization Reference ID</th>
+          <td><input type="number" name="organization_reference_id"
+              value="<?php echo esc_attr(get_option('organization_reference_id')); ?>" /></td>
+        </tr>
+      </table>
+      <table class="form-table">
+        <tr valign="top">
+          <th scope="row">API Key</th>
+          <td><input type="password" name="listen360_api_key"
+              value="<?php echo esc_attr(get_option('listen360_api_key')); ?>" /></td>
+        </tr>
+      </table>
+      <?php submit_button(); ?>
+    </form>
   </div>
-  <script>
-  document.getElementById('manual-update-button').addEventListener('click', function() {
-    alert('Manual update started!');
-  });
-  </script>
-  <?php
+  <div>
+    <p>Manually Pull and Update Reviews</p>
+    <button type="button" id="manual-update-button" class="button">Manual Update</button>
+  </div>
+</div>
+<script>
+document.getElementById('manual-update-button').addEventListener('click', function() {
+  alert('Manual update started!');
+});
+</script>
+<?php
 }
 
 // Register settings and fields
