@@ -36,7 +36,7 @@ function fetch_process_store_reviews()
   );
 
   $page = 1; // Start with the first page
-  $max_pages = 20; // Maximum number of pages to fetch
+  $max_pages = 5; // Maximum number of pages to fetch
 
   while ($page <= $max_pages) {
     $api_url = $api_url_base . "?per_page=5000&page=$page";
