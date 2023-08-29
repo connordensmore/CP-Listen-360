@@ -117,12 +117,19 @@ function fetch_process_store_reviews()
   }
 }
 
-
 // Hook the function to run when the page /testimonials/ is visited
-function run_fetch_process_store_on_page_visit()
+// function run_fetch_process_store_on_page_visit()
+// {
+//   if (is_page('testimonials')) {
+//     fetch_process_store_reviews();
+//   }
+// }
+// add_action('wp', 'run_fetch_process_store_on_page_visit');
+
+// Add action for manual update
+function listen360_manual_update_reviews()
 {
-  if (is_page('testimonials')) {
-    fetch_process_store_reviews();
-  }
+  fetch_process_store_reviews();
+  wp_die(); // This is necessary to end the AJAX request
 }
-add_action('wp', 'run_fetch_process_store_on_page_visit');
+add_action('wp_ajax_manual_update_reviews', 'listen360_manual_update_reviews');
