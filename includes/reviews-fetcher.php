@@ -2,75 +2,127 @@
 // reviews-fetcher.php
 
 // Function to fetch and update reviews
-function listen360_fetch_reviews()
+function fetch_api_data($api_url, $headers)
 {
-  $api_key = get_option('listen360_api_key');
-  $org_id = "2835632886631181125";
-  $organization_reference = get_option('listen360_organization_reference');
+  $curl = curl_init();
+  curl_setopt_array(
+    $curl,
+    array(
+      CURLOPT_URL => $api_url,
+      CURLOPT_RETURNTRANSFER => true,
+      CURLOPT_ENCODING => '',
+      CURLOPT_MAXREDIRS => 10,
+      CURLOPT_TIMEOUT => 0,
+      CURLOPT_FOLLOWLOCATION => true,
+      CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+      CURLOPT_CUSTOMREQUEST => 'GET',
+      CURLOPT_HTTPHEADER => $headers,
+    )
+  );
+  $response = curl_exec($curl);
+  curl_close($curl);
+  return $response;
+}
 
-  $authorization_header = 'Basic ' . base64_encode($api_key . ':X');
+function fetch_process_store_reviews()
+{
+  $organization_reference_id = get_option('organization_reference_id');
+  $api_url_base = 'https://app.listen360.com/organizations/2835632886631181125/reviews.csv';
+  $api_key = get_option('listen360_api_key');
+  $authorization_header = 'Authorization: Basic ' . base64_encode($api_key . ':X');
+  $cookie_header = 'Cookie: _listen360_production_session=BAh7CUkiD3Nlc3Npb25faWQGOgZFVEkiJTQ0MTA2YmMxNjUzMWYzOGRjNDY1NTdmODE4N2M0MWU2BjsAVEkiDnJldHVybl90bwY7AEZJIh9odHRwczovL2FwcC5saXN0ZW4zNjAuY29tLwY7AFRJIhBfY3NyZl90b2tlbgY7AEZJIjFxQVNLd0F4ZWZQd0JQcDYxcWNvazVLc0xyL2lGNlM4eC9WckFkcUJOT3EwPQY7AEZJIgxyb290X2lkBjsARmwrCUUrESkWMVon--a9488c80e4d5662c554e4a898d374aaf9277ecbd';
+
   $headers = array(
-    'Authorization' => $authorization_header,
+    $authorization_header,
+    $cookie_header,
   );
 
-  $url = 'https://app.listen360.com/organizations/' . $org_id . '/reviews.xml?per_page=20000';
-  $response = wp_remote_get($url, array('headers' => $headers));
+  $page = 1; // Start with the first page
+  $max_pages = 5; // Maximum number of pages to fetch
 
-  if (is_wp_error($response)) {
-    // Handle error
-    return;
-  }
+  while ($page <= $max_pages) {
+    $api_url = $api_url_base . "?per_page=5000&page=$page";
 
-  $body = wp_remote_retrieve_body($response);
-  $xml = simplexml_load_string($body);
+    $api_response = fetch_api_data($api_url, $headers);
 
-  // Loop through XML response and filter reviews by organization-reference
-  $filtered_reviews = array();
+    $csv_rows = str_getcsv($api_response, "\n");
 
-  foreach ($xml->survey as $review) {
-    $review_organization_reference = (int) $review->{'organization-reference'};
-
-    if ($review_organization_reference === (int) $organization_reference) {
-      $filtered_reviews[] = $review;
+    if (empty($csv_rows)) {
+      // No more data, exit the loop
+      break;
     }
-  }
 
-  // Loop through filtered reviews and update custom post type
-  foreach ($filtered_reviews as $review) {
-    $customer_name = (string) $review->{'customer-full-name'};
-    $rating = (int) $review->{'recommendation-likelihood'};
-    $comments = (string) $review->{'public-display-comments'};
+    foreach ($csv_rows as $csv_row) {
+      $data = str_getcsv($csv_row);
 
-    $post_data = array(
-      'post_title' => 'Review by ' . $customer_name,
-      'post_content' => $comments,
-      'post_status' => 'publish',
-      'post_type' => 'listen360_review', // Adjust based on your custom post type
-    );
+      // Make sure the array has at least 17 elements before accessing them
+      if (count($data) >= 17) {
+        $organizationReference = $data[0];
+        $customerFullName = $data[3];
+        $publicDisplayComments = $data[19];
 
-    $post_id = wp_insert_post($post_data);
+        // Check if the cells are not empty before creating or updating the post
+        if ($organizationReference == "$organization_reference_id" && !empty($customerFullName)) {
+          $existing_post = get_page_by_title($customerFullName, OBJECT, 'listen360_review');
 
-    update_post_meta($post_id, 'rating', $rating);
-    // Add more custom fields here
+          // Prepare the meta data for the post
+          $meta_data = array(
+            'organization_reference' => $data[0],
+            'organization_name' => $data[1],
+            'customer_reference' => $data[2],
+            'customer_email' => $data[4],
+            'job_reference' => $data[7],
+            'unique_survey_id' => $data[8],
+            'loyalty_profile_label' => $data[9],
+            'rating' => $data[10],
+            'survey_sent' => $data[11],
+            'survey_completed' => $data[12],
+            'comments' => $data[16],
+            'last_updated' => $data[18],
+            'public_display_customer_name' => $data[20]
+          );
 
-    // Attach post to categories or taxonomies if needed
-    // wp_set_post_categories($post_id, $category_ids);
-    // wp_set_object_terms($post_id, $term_ids, 'taxonomy_name');
+          if ($existing_post) {
+            $post_id = $existing_post->ID;
+
+            // Update the existing post
+            wp_update_post(
+              array(
+                // 'post_title' => $customerFullName, Somehow this was updating the title of the page when retiriving and making or updating new posts????
+                'post_content' => $publicDisplayComments,
+              )
+            );
+          } else {
+            // Create a new post
+            $post_id = wp_insert_post(
+              array(
+                'post_title' => $customerFullName,
+                'post_content' => $publicDisplayComments,
+                'post_status' => 'publish',
+                'post_type' => 'listen360_review'
+              )
+            );
+          }
+
+          // Update meta data for both new and existing posts
+          foreach ($meta_data as $meta_key => $meta_value) {
+            update_post_meta($post_id, $meta_key, $meta_value);
+          }
+        }
+      }
+    }
+
+    $page++; //Move to the next page.
+
   }
 }
 
-// Schedule a daily event to fetch reviews
-function listen360_schedule_reviews_fetch()
+
+// Hook the function to run when the page /testimonials/ is visited
+function run_fetch_process_store_on_page_visit()
 {
-  if (!wp_next_scheduled('listen360_fetch_reviews_event')) {
-    wp_schedule_event(time(), 'daily', 'listen360_fetch_reviews_event');
+  if (is_page('testimonials')) {
+    fetch_process_store_reviews();
   }
 }
-add_action('wp', 'listen360_schedule_reviews_fetch');
-
-// Hook to fetch reviews when the scheduled event triggers
-function listen360_fetch_reviews_event_handler()
-{
-  listen360_fetch_reviews();
-}
-add_action('listen360_fetch_reviews_event', 'listen360_fetch_reviews_event_handler');
+add_action('wp', 'run_fetch_process_store_on_page_visit');
