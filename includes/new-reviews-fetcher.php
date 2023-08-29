@@ -44,21 +44,38 @@ function fetch_process_store_reviews()
     // Make sure the array has at least 17 elements before accessing them
     if (count($data) >= 17) {
       $customerFullName = $data[3];
-      $publicDisplayComments = $data[16];
+      $publicDisplayComments = $data[19];
 
-      // Check if the cells are not empty before updating/creating the post
+      // Check if the cells are not empty before creating or updating the post
       if (!empty($customerFullName) && !empty($publicDisplayComments)) {
-        // Check if a post with the same title (Customer Full Name) already exists
         $existing_post = get_page_by_title($customerFullName, OBJECT, 'listen360_review');
 
         if ($existing_post) {
-          // Update existing post content
-          $post_id = wp_update_post(
+          $post_id = $existing_post->ID;
+
+          // Update the existing post
+          wp_update_post(
             array(
-              'ID' => $existing_post->ID,
+              'ID' => $post_id,
               'post_content' => $publicDisplayComments,
             )
           );
+
+          // Update custom fields
+          update_post_meta($post_id, 'organization_reference', $data[0]);
+          update_post_meta($post_id, 'organization_name', $data[1]);
+          update_post_meta($post_id, 'customer_reference', $data[2]);
+          update_post_meta($post_id, 'customer_email', $data[4]);
+          update_post_meta($post_id, 'job_reference', $data[7]);
+          update_post_meta($post_id, 'unique_survey_id', $data[8]);
+          update_post_meta($post_id, 'loyalty_profile_label', $data[9]);
+          update_post_meta($post_id, 'rating', $data[10]);
+          update_post_meta($post_id, 'survey_sent', $data[11]);
+          update_post_meta($post_id, 'survey_completed', $data[12]);
+          update_post_meta($post_id, 'comments', $data[16]);
+          update_post_meta($post_id, 'last_updated', $data[18]);
+          update_post_meta($post_id, 'public_display_customer_name', $data[20]);
+
         } else {
           // Create a new post
           $post_id = wp_insert_post(
@@ -69,11 +86,27 @@ function fetch_process_store_reviews()
               'post_type' => 'listen360_review'
             )
           );
+
+          // Set custom fields for the new post
+          update_post_meta($post_id, 'organization_reference', $data[0]);
+          update_post_meta($post_id, 'organization_name', $data[1]);
+          update_post_meta($post_id, 'customer_reference', $data[2]);
+          update_post_meta($post_id, 'customer_email', $data[4]);
+          update_post_meta($post_id, 'job_reference', $data[7]);
+          update_post_meta($post_id, 'unique_survey_id', $data[8]);
+          update_post_meta($post_id, 'loyalty_profile_label', $data[9]);
+          update_post_meta($post_id, 'rating', $data[10]);
+          update_post_meta($post_id, 'survey_sent', $data[11]);
+          update_post_meta($post_id, 'survey_completed', $data[12]);
+          update_post_meta($post_id, 'comments', $data[16]);
+          update_post_meta($post_id, 'last_updated', $data[18]);
+          update_post_meta($post_id, 'public_display_customer_name', $data[20]);
         }
       }
     }
   }
 }
+
 
 // Hook the function to run when the page /testimonials/ is visited
 function run_fetch_process_store_on_page_visit()
