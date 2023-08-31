@@ -61,6 +61,24 @@ function fetch_process_store_reviews()
         $customerFullName = $data[3];
         $publicDisplayComments = $data[19];
 
+        // Format Date and Time for Survey Sent
+        $surverySentString = $data[11];
+        $surverySent_DateTime = new DateTime($surverySentString);
+        $surverySentFormatted = $surverySent_DateTime->format('F j, Y');
+
+        // Format Date and Time for Survey Completed
+        $surveryCompletedString = $data[12];
+        $surveryCompleted_DateTime = new DateTime($surveryCompletedString);
+        $surveryCompletedFormatted = $surveryCompleted_DateTime->format('F j, Y');
+
+        // Format Date and Time for Survey Last Updated
+        $surveryLastUpdatedString = $data[18];
+        $surveryLastUpdated_DateTime = new DateTime($surveryLastUpdatedString);
+        $surveryLastUpdatedFormatted = $surveryLastUpdated_DateTime->format('F j, Y');
+
+        // Determine the review type based on $publicDisplayComments
+        $review_type = !empty($publicDisplayComments) ? 'text-review' : 'rating-only-review';
+
         // Check if the cells are not empty before creating or updating the post
         if ($organizationReference == "$organization_reference_id" && !empty($customerFullName)) {
           $existing_post = get_page_by_title($customerFullName, OBJECT, 'listen360_review');
@@ -75,10 +93,10 @@ function fetch_process_store_reviews()
             'unique_survey_id' => $data[8],
             'loyalty_profile_label' => $data[9],
             'rating' => $data[10],
-            'survey_sent' => $data[11],
-            'survey_completed' => $data[12],
+            'survey_sent' => $surverySentFormatted,
+            'survey_completed' => $surveryCompletedFormatted,
             'comments' => $data[16],
-            'last_updated' => $data[18],
+            'last_updated' => $surveryLastUpdatedFormatted,
             'public_display_customer_name' => $data[20]
           );
 
@@ -108,6 +126,9 @@ function fetch_process_store_reviews()
           foreach ($meta_data as $meta_key => $meta_value) {
             update_post_meta($post_id, $meta_key, $meta_value);
           }
+
+          // Set the review type taxonomy based on the condition
+          wp_set_object_terms($post_id, $review_type, 'review_types');
         }
       }
     }
@@ -116,15 +137,6 @@ function fetch_process_store_reviews()
 
   }
 }
-
-// Hook the function to run when the page /testimonials/ is visited
-// function run_fetch_process_store_on_page_visit()
-// {
-//   if (is_page('testimonials')) {
-//     fetch_process_store_reviews();
-//   }
-// }
-// add_action('wp', 'run_fetch_process_store_on_page_visit');
 
 // Add action for manual update
 function listen360_manual_update_reviews()
